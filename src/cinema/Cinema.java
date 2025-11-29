@@ -4,14 +4,14 @@ import java.util.Scanner;
 
 public class Cinema {
 
-    // Constants for ticket pricing rules
-    private static final int SMALL_ROOM_LIMIT = 60; // Threshold where all seats cost $10
-    private static final int PRICE_STANDARD = 10;   // Price for small rooms and front half of large rooms
-    private static final int PRICE_REDUCED = 8;     // Price for back half of large rooms
+    // ----- Ticket pricing constants -----
+    private static final int SMALL_ROOM_LIMIT = 60;  // Border between small and large hall
+    private static final int PRICE_STANDARD = 10;    // Standard ticket price
+    private static final int PRICE_REDUCED = 8;      // Reduced ticket price for back rows
 
     /**
-     * Reads any positive integer from user input.
-     * Used for reading cinema dimensions (rows, seats).
+     * Reads a positive integer from input.
+     * Used for reading the number of rows and seats per row.
      */
     public static int readPositiveInt(Scanner scanner, String message) {
         int input;
@@ -31,63 +31,62 @@ public class Cinema {
     }
 
     /**
-     * Creates the cinema hall as a 2D array filled with 'S' (available seats).
+     * Creates a 2D array representing the cinema hall.
+     * All seats are initially marked as free ('S').
      */
-    public static char[][] createHall(int rows, int seats) {
-        char[][] cinema = new char[rows][seats];
+    public static char[][] createHall(int rowsCount, int seatsPerRow) {
+        char[][] hall = new char[rowsCount][seatsPerRow];
 
-        for (int row = 0; row < rows; row++) {
-            for (int seat = 0; seat < seats; seat++) {
-                cinema[row][seat] = 'S';
+        for (int row = 0; row < rowsCount; row++) {
+            for (int seat = 0; seat < seatsPerRow; seat++) {
+                hall[row][seat] = 'S';
             }
         }
-        return cinema;
+        return hall;
     }
 
     /**
-     * Prints the hall layout with row and seat numbers.
-     * Example:
-     *   1 2 3 ...
-     * 1 S S S ...
+     * Displays the current seating layout.
+     * Shows row/seat numbers and the S/B seat status.
      */
-    public static void printHall(char[][] cinema) {
-        int rows = cinema.length;
-        int seats = cinema[0].length;
+    public static void showSeats(char[][] hall) {
+        int rowsCount = hall.length;
+        int seatsPerRow = hall[0].length;
 
         System.out.println("Cinema:");
 
-        // Print top seat numbers
+        // Print seat numbers
         System.out.print("  ");
-        for (int seat = 1; seat <= seats; seat++) {
+        for (int seat = 1; seat <= seatsPerRow; seat++) {
             System.out.print(seat + " ");
         }
         System.out.println();
 
-        // Print each row with row number
-        for (int row = 1; row <= rows; row++) {
+        // Print rows with seat states
+        for (int row = 1; row <= rowsCount; row++) {
             System.out.print(row + " ");
-            for (int seat = 1; seat <= seats; seat++) {
-                System.out.print(cinema[row - 1][seat - 1] + " ");
+            for (int seat = 1; seat <= seatsPerRow; seat++) {
+                System.out.print(hall[row - 1][seat - 1] + " ");
             }
             System.out.println();
         }
     }
 
     /**
-     * Reads a number that must be within the range [1, max].
-     * Used for selecting an existing row/seat inside the hall.
+     * Reads an integer in the specified range (inclusive).
+     * If message is empty, no prompt is printed.
      */
-    public static int readIntInRange(Scanner scanner, String message, int max) {
+    public static int readIntInRange(Scanner scanner, String message, int min, int max) {
         int input;
 
         while (true) {
             try {
-                System.out.println(message);
+                if (!message.isEmpty()) System.out.println(message);
                 input = Integer.parseInt(scanner.nextLine());
-                if (input > 0 && input <= max) {
+                if (input >= min && input <= max) {
                     return input;
                 }
-                System.out.println("Error: Number must be between 1 and " + max + "!");
+                System.out.println("Error: Number must be between " + min + " and " + max + "!");
             } catch (NumberFormatException e) {
                 System.out.println("Error: Please enter a number!");
             }
@@ -95,52 +94,88 @@ public class Cinema {
     }
 
     /**
-     * Determines the ticket price based on cinema rules:
-     * - If total seats <= 60 → all tickets cost $10
-     * - Otherwise → rows in the front half cost $10, back half cost $8
+     * Calculates the price of a ticket based on row and hall size.
+     * - Small hall: all seats cost the same.
+     * - Large hall: front half is more expensive.
      */
-    public static int getTicketPrice(int row, char[][] cinema) {
-        int rows =  cinema.length;
-        int seats = cinema[0].length;
-        int totalSeats = rows * seats;
+    public static int getTicketPrice(int row, char[][] hall) {
+        int rowsCount = hall.length;
+        int seatsPerRow = hall[0].length;
+        int totalSeats = rowsCount * seatsPerRow;
 
-        int frontRows = rows / 2;
+        int frontRows = rowsCount / 2;
 
         if (totalSeats <= SMALL_ROOM_LIMIT) return PRICE_STANDARD;
         if (row <= frontRows) return PRICE_STANDARD;
-        return  PRICE_REDUCED;
+        return PRICE_REDUCED;
     }
 
     /**
-     * Marks a seat as purchased ('B').
+     * Marks the selected seat as booked ('B').
      */
-    public static void buyTicket(int row, int seat,  char[][] cinema) {
-        cinema[row - 1][seat - 1] = 'B';
+    public static void buyTicket(int row, int seat, char[][] hall) {
+        hall[row - 1][seat - 1] = 'B';
     }
 
+    /**
+     * Prints the main program menu.
+     */
+    public static void printMenu() {
+        System.out.println();
+        System.out.println("1. Show the seats");
+        System.out.println("2. Buy a ticket");
+        System.out.println("0. Exit");
+    }
+
+    /**
+     * Main menu loop.
+     * Continues until the user selects Exit.
+     */
+    public static void runMenu(Scanner scanner, char[][] hall) {
+        while (true) {
+            printMenu();
+            int input = readIntInRange(scanner, "", 0, 2);
+
+            switch (input) {
+                case 1:
+                    showSeats(hall);
+                    break;
+
+                case 2:
+                    int row = readIntInRange(scanner,
+                            "Enter a row number:", 1, hall.length);
+
+                    int seat = readIntInRange(scanner,
+                            "Enter a seat number in that row:", 1, hall[0].length);
+
+                    System.out.println("Ticket price: $" + getTicketPrice(row, hall));
+                    System.out.println();
+
+                    buyTicket(row, seat, hall);
+                    break;
+
+                case 0:
+                    return; // Exit program
+            }
+        }
+    }
+
+    /**
+     * Entry point of the program:
+     * - Reads hall dimensions
+     * - Builds the hall
+     * - Starts the menu loop
+     */
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
-        // Read hall dimensions
-        int rows = readPositiveInt(scanner, "Enter the number of rows:");
-        int seats = readPositiveInt(scanner, "Enter the number of seats in each row:");
+        int rowsCount = readPositiveInt(scanner, "Enter the number of rows:");
+        int seatsPerRow = readPositiveInt(scanner, "Enter the number of seats in each row:");
 
-        // Build and display empty hall
-        char [][] cinema = createHall(rows, seats);
-        printHall(cinema);
+        char[][] hall = createHall(rowsCount, seatsPerRow);
 
-        // Read seat coordinates inside the valid range
-        int row = readIntInRange(scanner, "Enter a row number:", rows);
-        int seat = readIntInRange(scanner, "Enter a seat number in that row:", seats);
+        runMenu(scanner, hall);
 
-        // Show ticket price for selected seat
-        System.out.println("Ticket price: $" + getTicketPrice(row, cinema));
-        System.out.println();
-
-        // Buy the ticket and update the hall
-        buyTicket(row, seat, cinema);
-        printHall(cinema);
-        
         scanner.close();
     }
 }
